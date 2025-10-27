@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+
+{% block title %}個人頁面 - {{ session['name'] }}{% endblock %}
+
+{% block content %}
+<div class="p-5 mb-5 bg-light border rounded-3 shadow-sm">
+    <div class="container-fluid py-3">
+        <h1 class="display-5 fw-bold">歡迎, {{ session['name'] }}!</h1>
+        <p class="col-md-8 fs-4 text-body-secondary">您的身分是: 
+            {% if session['role'] == 'organizer' %}
+                <span class="badge text-bg-success fs-5">活動方</span>
+            {% else %}
+                <span class="badge text-bg-info fs-5">參加者</span>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- 根據身分顯示不同內容 -->
+{% if session.role == 'organizer' %}
+    <!-- ==================== 活動方介面 ==================== -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">我舉辦的活動</h2>
+        <div class="btn-group">
+            <!-- 單筆新增按鈕 -->
+            <button type="button" class="btn  shadow-sm" style="border-color: rgb(82, 82, 82);" data-bs-toggle="modal" data-bs-target="#createEventModal" title="新增單筆活動">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/></svg>
+            </button>
+            <!-- 批次新增按鈕 -->
+            <button type="button" class="btn shadow-sm" style="border-color: rgb(82, 82, 82);" data-bs-toggle="modal" data-bs-target="#bulkCreateModal" title="批次新增活動">
+                批次新增
+            </button>
+            <!-- CSV 匯入按鈕 -->
+            <button type="button" class="btn shadow-sm" style="background-color: rgb(49, 107, 34); color: #ece9e9;" data-bs-toggle="modal" data-bs-target="#importCsvModal" title="從 CSV 匯入">
+                匯入 CSV
+            </button>
+        </div>
+    </div>
+    <div class="row">
+        {% for event in my_events %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow border-0">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title fw-bold">{{ event.name }}</h5>
+                    <p class="card-text flex-grow-1">{{ event.description }}</p>
+                    <p class="card-text"><small class="text-muted">時間: {{ event.time.replace('T', ' ') }}</small></p>
+                    <p class="card-subtitle mb-2 text-muted">地點: {{ event.location }}</p>
+                    <a href="#" class="btn btn-outline-primary mt-auto">管理活動</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-center text-muted mt-5">您尚未建立任何活動，點擊右上方 '+' 按鈕來新增一個吧！</p>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <!-- ==================== 參加者介面 ==================== -->
+    <h2 class="fw-bold mb-4">所有可參加的活動</h2>
+    <div class="row">
+        {% for event in all_events %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow border-0">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title fw-bold">{{ event.name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">舉辦方: {{ event.organizer_name }}</h6>
+                    <p class="card-text flex-grow-1">{{ event.description }}</p>
+                    <p class="card-text"><small class="text-muted">時間: {{ event.time.replace('T', ' ') }}</small></p>
+                    <a href="#" class="btn btn-success mt-auto">登記排隊</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-center text-muted mt-5">目前沒有任何開放的活動。</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+
+{% if session.role == 'organizer' %}
+<div class="modal fade" id="createEventModal" tabindex="-1" aria-labelledby="createEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('create_event') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="createEventModalLabel">建立新活動</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="event_name" class="form-label">活動名稱</label>
+                        <input type="text" class="form-control" id="event_name" name="event_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">活動簡述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="event_time" class="form-label">活動時間</label>
+                        <input type="datetime-local" class="form-control" id="event_time" name="event_time" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">活動地點</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">建立活動</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="bulkCreateModal" tabindex="-1" aria-labelledby="bulkCreateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('create_events_bulk') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="bulkCreateModalLabel">批次新增活動</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">點擊 "新增一筆" 來增加更多活動欄位。</p>
+                    <!-- 這是動態新增欄位的容器 -->
+                    <div id="bulk-form-container">
+                        <!-- 第一筆活動的欄位 -->
+                        <div class="event-form-group border p-3 mb-3 rounded">
+                            <h6 class="fw-bold">活動 1</h6>
+                            <div class="mb-2">
+                                <label class="form-label">活動名稱</label>
+                                <input type="text" class="form-control" name="event_name[]" required>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">活動簡述</label>
+                                <textarea class="form-control" name="description[]" rows="2" required></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label">活動時間</label>
+                                    <input type="datetime-local" class="form-control" name="event_time[]" required>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label">活動地點</label>
+                                    <input type="text" class="form-control" name="location[]" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary" id="add-event-btn">新增一筆</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">全部儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- ==================== 新增：從 CSV 匯入的 Modal ==================== -->
+<div class="modal fade" id="importCsvModal" tabindex="-1" aria-labelledby="importCsvModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <!-- 注意：檔案上傳的 form 必須有 enctype="multipart/form-data" -->
+            <form method="POST" action="{{ url_for('import_events_csv') }}" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="importCsvModalLabel">從 CSV 檔案匯入</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>請上傳 CSV 檔案。檔案第一列需為標頭，且包含以下欄位：<br>
+                    <code>name,description,time,location</code></p>
+                    <p>時間格式請用：<code>YYYY-MM-DDTHH:MM</code> (例如: 2024-12-31T18:30)</p>
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">選擇 CSV 檔案</label>
+                        <input class="form-control" type="file" id="csv_file" name="csv_file" accept=".csv" required>
+                    </div>
+                    <a href="{{ url_for('static', filename='template/events_template.csv') }}" download>下載 CSV 範本</a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">上傳並匯入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<!-- 新增一個 block 來放頁面專屬的 script -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const addEventBtn = document.getElementById('add-event-btn');
+    if (addEventBtn) {
+        addEventBtn.addEventListener('click', () => {
+            const container = document.getElementById('bulk-form-container');
+            const eventCount = container.children.length + 1;
+
+            const newFormGroup = document.createElement('div');
+            newFormGroup.className = 'event-form-group border p-3 mb-3 rounded';
+            newFormGroup.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <h6 class="fw-bold">活動 ${eventCount}</h6>
+                    <button type="button" class="btn-close btn-sm" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">活動名稱</label>
+                    <input type="text" class="form-control" name="event_name[]" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">活動簡述</label>
+                    <textarea class="form-control" name="description[]" rows="2" required></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">活動時間</label>
+                        <input type="datetime-local" class="form-control" name="event_time[]" required>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">活動地點</label>
+                        <input type="text" class="form-control" name="location[]" required>
+                    </div>
+                </div>
+            `;
+            container.appendChild(newFormGroup);
+        });
+    }
+});
+</script>
+{% endblock %}
